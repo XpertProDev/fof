@@ -93,8 +93,9 @@ public interface FactureRepository extends JpaRepository<Facture, Long> {
 
   List<Facture> findByStatutInAndDateEcheanceBefore(List<StatutFacture> statuts, LocalDate date);
 
+  /** CA encaissé (cumul des paiements enregistrés sur factures non annulées). */
   @Query("""
-      select coalesce(sum(f.totalTtc), 0)
+      select coalesce(sum(f.montantPaye), 0)
       from Facture f
       where f.statut <> com.fof.facture.entity.StatutFacture.ANNULEE
       """)
@@ -116,19 +117,37 @@ public interface FactureRepository extends JpaRepository<Facture, Long> {
       """)
   long compterFacturesEnAttente();
 
-  @Query(
-      value = """
-        select date_format(f.date_emission, '%Y-%m') as mois,
-               coalesce(sum(f.total_ttc), 0) as total
-        from facture f
-        where f.date_emission between :debut and :fin
-          and f.statut <> 'ANNULEE'
-        group by date_format(f.date_emission, '%Y-%m')
-        order by mois
-        """,
-      nativeQuery = true
-  )
-  List<Object[]> chiffreAffairesParMois(@Param("debut") LocalDate debut, @Param("fin") LocalDate fin);
+  /** Factures avec reste à payer et date d’échéance dans [debut, fin] (inclus). */
+  @Query("""
+      select count(f)
+      from Facture f
+      where f.statut <> com.fof.facture.entity.StatutFacture.ANNULEE
+        and f.statut <> com.fof.facture.entity.StatutFacture.PAYEE
+        and f.dateEcheance is not null
+        and f.dateEcheance between :debut and :fin
+        and f.montantRestant > 0
+      """)
+  long compterFacturesEcheanceEntre(@Param("debut") LocalDate debut, @Param("fin") LocalDate fin);
+
+  @Query("""
+      select coalesce(sum(f.montantRestant), 0)
+      from Facture f
+      where f.statut <> com.fof.facture.entity.StatutFacture.ANNULEE
+        and f.statut <> com.fof.facture.entity.StatutFacture.PAYEE
+        and f.dateEcheance is not null
+        and f.dateEcheance between :debut and :fin
+        and f.montantRestant > 0
+      """)
+  BigDecimal sommeMontantRestantEcheanceEntre(@Param("debut") LocalDate debut, @Param("fin") LocalDate fin);
+
+  /** Total TTC facturé (émissions) sur la période, hors annulées. */
+  @Query("""
+      select coalesce(sum(f.totalTtc), 0)
+      from Facture f
+      where f.statut <> com.fof.facture.entity.StatutFacture.ANNULEE
+        and f.dateEmission between :debut and :fin
+      """)
+  BigDecimal sommeTotalTtcEmisEntre(@Param("debut") LocalDate debut, @Param("fin") LocalDate fin);
 
   @Query(
       value = """

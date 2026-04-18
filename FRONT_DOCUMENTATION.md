@@ -431,9 +431,17 @@ Payer:
 ## 10) Dashboard
 - **GET** `/api/dashboard?annee=2026&tailleOperationsRecentes=10` (**PERM_ACCOUNTING_VIEW**)
 
+Config : `app.dashboard.echeance-prochaine-jours` (défaut **3**) — fenêtre **[aujourd’hui, aujourd’hui + N]** pour les compteurs « échéances proches ».
+
 Retourne aussi:
 - `devise`
-- séries 12 mois (`chiffreAffairesParMois`, `depensesParMois`, `fluxParMois`)
+- séries 12 mois : **`chiffreAffairesParMois`** = **CA encaissé** par mois (somme des **paiements**, date du paiement) ; **`depensesParMois`** ; **`fluxParMois`**
+- **`chiffreAffairesTotal`** : **CA encaissé cumulé** (somme des `montantPaye` sur factures non annulées). Une facture **sans paiement** n’y contribue **pas**.
+- **`chiffreAffairesEncaisseDuMois`** : encaissements (**paiements**) sur le **mois civil en cours** (UTC, aligné trésorerie).
+- **`chiffreAffairesFactureDuMois`** : total **TTC facturé** (`dateEmission` dans le mois civil en cours, hors `ANNULEE`).
+- **`echeanceProchaineFenetreJours`** : valeur **N** utilisée pour les champs suivants.
+- **`nombreFacturesEcheanceProche`** / **`montantDuFacturesEcheanceProche`** : factures avec **reste à payer** et **`dateEcheance`** dans la fenêtre (hors `ANNULEE`, `PAYEE`).
+- **`nombreEcheancesPlanEnAttenteProche`** / **`montantRestantProgrammeEcheancesPlanProches`** : lignes **`echeance_paiement`** `EN_ATTENTE` dont **`datePrevue`** est dans la fenêtre, facture non `ANNULEE` ; montant = somme **`montantProgramme - montantPaye`**.
 - `operationsRecentes`
 - `facturesParStatut`
 

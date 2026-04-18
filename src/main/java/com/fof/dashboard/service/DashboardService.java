@@ -7,7 +7,9 @@ import com.fof.dashboard.dto.OperationRecenteResponse;
 import com.fof.dashboard.dto.SoldeCompteResponse;
 import com.fof.depense.repository.DepenseRepository;
 import com.fof.facture.entity.StatutFacture;
+import com.fof.facture.repository.EcheancePaiementRepository;
 import com.fof.facture.repository.FactureRepository;
+import com.fof.facture.repository.PaiementFactureRepository;
 import com.fof.paie.repository.PaieRepository;
 import com.fof.tresorerie.entity.TransactionTresorerie;
 import com.fof.tresorerie.repository.TransactionTresorerieRepository;
@@ -15,6 +17,7 @@ import com.fof.tresorerie.repository.CompteRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +33,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class DashboardService {
 
   private final FactureRepository factureRepository;
+  private final PaiementFactureRepository paiementFactureRepository;
+  private final EcheancePaiementRepository echeancePaiementRepository;
   private final DepenseRepository depenseRepository;
   private final PaieRepository paieRepository;
   private final CompteRepository compteRepository;
@@ -37,6 +42,9 @@ public class DashboardService {
 
   @Value("${app.devise:XOF}")
   private String devise;
+
+  @Value("${app.dashboard.echeance-prochaine-jours:3}")
+  private int echeanceProchaineFenetreJours;
 
   @Transactional(readOnly = true)
   public DashboardResponse chargerDashboard(Integer annee, Integer tailleOperationsRecentes) {
@@ -48,6 +56,24 @@ public class DashboardService {
     LocalDate debutMois = ym.atDay(1);
     LocalDate finMois = ym.atEndOfMonth();
     BigDecimal depensesMois = depenseRepository.sommeDepensesEntre(debutMois, finMois);
+
+    var debutMoisInstant = debutMois.atStartOfDay(ZoneOffset.UTC).toInstant();
+    var finMoisInstantExclus = finMois.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+    BigDecimal chiffreAffairesEncaisseDuMois =
+        paiementFactureRepository.sommeMontantPaiementsEntre(debutMoisInstant, finMoisInstantExclus);
+    BigDecimal chiffreAffairesFactureDuMois = factureRepository.sommeTotalTtcEmisEntre(debutMois, finMois);
+
+    LocalDate aujourdHui = LocalDate.now();
+    int fenetre = Math.max(0, echeanceProchaineFenetreJours);
+    LocalDate finFenetreEcheance = aujourdHui.plusDays(fenetre);
+    long nombreFacturesEcheanceProche =
+        factureRepository.compterFacturesEcheanceEntre(aujourdHui, finFenetreEcheance);
+    BigDecimal montantDuFacturesEcheanceProche =
+        factureRepository.sommeMontantRestantEcheanceEntre(aujourdHui, finFenetreEcheance);
+    long nombreEcheancesPlanEnAttenteProche =
+        echeancePaiementRepository.compterEcheancesPlanEnAttenteEntre(aujourdHui, finFenetreEcheance);
+    BigDecimal montantRestantProgrammeEcheancesPlanProches =
+        echeancePaiementRepository.sommeRestantProgrammeEcheancesEntre(aujourdHui, finFenetreEcheance);
 
     BigDecimal salairesAPayer = paieRepository.sommeSalairesApprouvesAPayer();
     BigDecimal soldeGlobal = compteRepository.sommeSoldeGlobal();
@@ -63,7 +89,7 @@ public class DashboardService {
 
     List<MoisTotalResponse> chiffreAffairesParMois = remplirSerieMoisTotal(
         moisSeries,
-        factureRepository.chiffreAffairesParMois(debutSerie, finSerie)
+        paiementFactureRepository.chiffreAffairesEncaisseParMois(debutSerie, finSerie)
     );
 
     List<MoisTotalResponse> depensesParMois = remplirSerieMoisTotal(
@@ -104,7 +130,14 @@ public class DashboardService {
         depensesParMois,
         fluxParMois,
         operationsRecentes,
-        facturesParStatut
+        facturesParStatut,
+        fenetre,
+        nombreFacturesEcheanceProche,
+        montantDuFacturesEcheanceProche,
+        nombreEcheancesPlanEnAttenteProche,
+        montantRestantProgrammeEcheancesPlanProches,
+        chiffreAffairesEncaisseDuMois,
+        chiffreAffairesFactureDuMois
     );
   }
 
