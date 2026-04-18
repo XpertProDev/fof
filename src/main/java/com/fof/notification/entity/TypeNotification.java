@@ -1,0 +1,11 @@
+package com.fof.notification.entity;
+
+public enum TypeNotification {
+  FACTURE_ECHEANCE_PROCHE,
+  FACTURE_EN_RETARD,
+  ECHEANCE_PAIEMENT_IMMINENTE,
+  ECHEANCE_PAIEMENT_MANQUEE,
+  PAIE_A_PAYER,
+  SOLDE_FAIBLE
+}
+
