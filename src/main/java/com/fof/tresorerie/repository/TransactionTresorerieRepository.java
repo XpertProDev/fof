@@ -8,10 +8,12 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface TransactionTresorerieRepository extends JpaRepository<TransactionTresorerie, Long> {
+public interface TransactionTresorerieRepository
+    extends JpaRepository<TransactionTresorerie, Long>, JpaSpecificationExecutor<TransactionTresorerie> {
   Page<TransactionTresorerie> findByType(TypeTransaction type, Pageable pageable);
 
   Page<TransactionTresorerie> findByDateOperationBetween(Instant debut, Instant fin, Pageable pageable);
@@ -24,7 +26,8 @@ public interface TransactionTresorerieRepository extends JpaRepository<Transacti
                coalesce(sum(case when t.type = 'ENTREE' then t.montant else 0 end), 0) as encaissements,
                coalesce(sum(case when t.type = 'SORTIE' then t.montant else 0 end), 0) as decaissements
         from transaction_tresorerie t
-        where date(t.date_operation) between :debut and :fin
+        where t.statut = 'POSTEE'
+          and date(t.date_operation) between :debut and :fin
         group by date_format(t.date_operation, '%Y-%m')
         order by mois
         """,

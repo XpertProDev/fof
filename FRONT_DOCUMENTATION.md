@@ -68,7 +68,7 @@ Principales permissions:
 - `PERM_EMPLOYEE_MANAGE`
 - `PERM_PAYROLL_MANAGE`
 - `PERM_EXPENSE_MANAGE`
-- `PERM_ACCOUNTING_VIEW`
+- `PERM_ACCOUNTING_VIEW`, `PERM_TREASURY_MANAGE` (comptes + journal + opérations trésorerie)
 - `PERM_SETTINGS_MANAGE`
 
 ## Entreprise (entête/pied de page factures)
@@ -113,8 +113,6 @@ Exemple JSON (`donnees`) :
   "numeroCompteBanque": "SN12 1234 1234 1234 1234 1234"
 }
 ```
-- `PERM_TREASURY_MANAGE`
-- `PERM_SETTINGS_MANAGE`
 
 ## Format d’erreur JSON (uniforme)
 L’API renvoie (exemples):
@@ -144,17 +142,32 @@ Réponse paginée = format Spring `Page` (`content`, `totalElements`, `totalPage
 
 ---
 
-## 1) Trésorerie
+## 1) Trésorerie / Comptabilité
+Contrat détaillé pour la page **`/comptabilite`** : voir **`Compta.md`**.
+
 ### Comptes
-- **POST** `/api/comptes` (**PERM_TREASURY_MANAGE**)
+- **POST** `/api/comptes` (**PERM_TREASURY_MANAGE**) — **201 Created**
 
 ```json
 { "nom": "Caisse", "type": "CAISSE" }
 ```
 
-- **GET** `/api/comptes?recherche=` (**PERM_TREASURY_MANAGE** ou **PERM_ACCOUNTING_VIEW**)
+Types : `CAISSE`, `BANQUE`, `ORANGE_MONEY`, `AUTRE`. Nom : **2–120** caractères.
 
-### Transactions
+Réponse (exemple) :
+```json
+{
+  "id": 1,
+  "nom": "Caisse",
+  "type": "CAISSE",
+  "solde": 0,
+  "devise": "XOF"
+}
+```
+
+- **GET** `/api/comptes?recherche=&page=&size=&sort=` (**PERM_TREASURY_MANAGE** ou **PERM_ACCOUNTING_VIEW**) — page Spring.
+
+### Transactions (journal)
 - **POST** `/api/transactions/depot` (**PERM_TREASURY_MANAGE**)
 
 ```json
@@ -173,7 +186,34 @@ Réponse paginée = format Spring `Page` (`content`, `totalElements`, `totalPage
 { "compteSourceId": 1, "compteDestinationId": 2, "montant": 3000, "description": "Transfert" }
 ```
 
-- **GET** `/api/transactions?type=ENTREE|SORTIE|TRANSFERT` (**PERM_TREASURY_MANAGE** ou **PERM_ACCOUNTING_VIEW**)
+- **GET** `/api/transactions` (**PERM_TREASURY_MANAGE** ou **PERM_ACCOUNTING_VIEW**)
+
+Query : `type` (optionnel `ENTREE` \| `SORTIE` \| `TRANSFERT`), `recherche` (libellé + noms de comptes), `debut` / `fin` (dates ISO `YYYY-MM-DD`, filtre sur **jour civil UTC**), pagination Spring. Tri par défaut : **date décroissante**.
+
+Réponse : page d’objets du type :
+```json
+{
+  "id": 12,
+  "date": "2026-04-17T10:00:00Z",
+  "type": "ENTREE",
+  "libelle": "Paiement facture FAC-001",
+  "montant": 50000,
+  "devise": "XOF",
+  "compteNom": "Caisse",
+  "compteSource": null,
+  "compteDestination": null,
+  "reference": "FACTURE:3",
+  "statut": "POSTEE"
+}
+```
+Pour un **TRANSFERT**, `compteNom` est `null` et `compteSource` / `compteDestination` contiennent les noms des comptes.
+
+Le journal **n’inclut pas** les lignes au statut **`ANNULEE`** (l’annulation crée une écriture inverse `POSTEE`).
+
+### Rapport mensuel (reporting)
+- **GET** `/api/transactions/rapport-mensuel?debut=2025-11&fin=2026-04` (**PERM_TREASURY_MANAGE** ou **PERM_ACCOUNTING_VIEW**)
+
+Réponse : tableau `{ "mois": "YYYY-MM", "encaissements", "decaissements" }` (tous les mois de la plage ; **TRANSFERT** exclus des totaux ; **ANNULEE** exclues).
 
 ### Annulation d’une transaction (écriture inverse)
 - **POST** `/api/transactions/{id}/annulation` (**PERM_TREASURY_MANAGE**)

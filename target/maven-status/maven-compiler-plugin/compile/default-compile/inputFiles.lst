@@ -136,6 +136,7 @@
 /Users/mac/Desktop/fof/src/main/java/com/fof/tresorerie/dto/CompteResponse.java
 /Users/mac/Desktop/fof/src/main/java/com/fof/tresorerie/dto/CreerCompteRequest.java
 /Users/mac/Desktop/fof/src/main/java/com/fof/tresorerie/dto/DepotRequest.java
+/Users/mac/Desktop/fof/src/main/java/com/fof/tresorerie/dto/FluxMoisRapportResponse.java
 /Users/mac/Desktop/fof/src/main/java/com/fof/tresorerie/dto/RetraitRequest.java
 /Users/mac/Desktop/fof/src/main/java/com/fof/tresorerie/dto/TransactionTresorerieResponse.java
 /Users/mac/Desktop/fof/src/main/java/com/fof/tresorerie/dto/TransfertRequest.java
@@ -147,5 +148,6 @@
 /Users/mac/Desktop/fof/src/main/java/com/fof/tresorerie/entity/TypeTransaction.java
 /Users/mac/Desktop/fof/src/main/java/com/fof/tresorerie/repository/CompteRepository.java
 /Users/mac/Desktop/fof/src/main/java/com/fof/tresorerie/repository/TransactionTresorerieRepository.java
+/Users/mac/Desktop/fof/src/main/java/com/fof/tresorerie/repository/TransactionTresorerieSpecs.java
 /Users/mac/Desktop/fof/src/main/java/com/fof/tresorerie/service/CompteService.java
 /Users/mac/Desktop/fof/src/main/java/com/fof/tresorerie/service/TransactionTresorerieService.java

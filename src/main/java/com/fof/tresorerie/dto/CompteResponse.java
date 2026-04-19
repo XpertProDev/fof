@@ -7,6 +7,7 @@ public record CompteResponse(
     Long id,
     String nom,
     TypeCompte type,
-    BigDecimal soldeActuel
+    BigDecimal solde,
+    String devise
 ) {}
 

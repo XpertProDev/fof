@@ -7,6 +7,7 @@ import com.fof.tresorerie.repository.CompteRepository;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class CompteService {
 
   private final CompteRepository compteRepository;
+
+  @Value("${app.devise:XOF}")
+  private String devise;
 
   @Transactional
   public CompteResponse creerCompte(CreerCompteRequest request) {
@@ -42,7 +46,7 @@ public class CompteService {
   }
 
   private CompteResponse versResponse(Compte compte) {
-    return new CompteResponse(compte.getId(), compte.getNom(), compte.getType(), compte.getSoldeActuel());
+    return new CompteResponse(compte.getId(), compte.getNom(), compte.getType(), compte.getSoldeActuel(), devise);
   }
 }
 

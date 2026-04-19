@@ -1,6 +1,7 @@
 package com.fof.tresorerie.service;
 
 import com.fof.tresorerie.dto.DepotRequest;
+import com.fof.tresorerie.dto.FluxMoisRapportResponse;
 import com.fof.tresorerie.dto.RetraitRequest;
 import com.fof.tresorerie.dto.TransactionTresorerieResponse;
 import com.fof.tresorerie.dto.TransfertRequest;
@@ -10,15 +11,26 @@ import com.fof.tresorerie.entity.TransactionTresorerie;
 import com.fof.tresorerie.entity.TypeReference;
 import com.fof.tresorerie.entity.TypeTransaction;
 import com.fof.tresorerie.repository.TransactionTresorerieRepository;
+import com.fof.tresorerie.repository.TransactionTresorerieSpecs;
 import com.fof.audit.service.JournalAuditService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ValidationException;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,9 +38,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class TransactionTresorerieService {
 
+  private static final BigDecimal ZERO = BigDecimal.ZERO;
+
   private final CompteService compteService;
   private final TransactionTresorerieRepository transactionRepository;
   private final JournalAuditService journalAuditService;
+
+  @Value("${app.devise:XOF}")
+  private String devise;
 
   @Transactional
   public TransactionTresorerieResponse depot(DepotRequest request) {
@@ -191,24 +208,101 @@ public class TransactionTresorerieService {
   }
 
   @Transactional(readOnly = true)
-  public Page<TransactionTresorerieResponse> listerTransactions(TypeTransaction type, Pageable pageable) {
-    if (type == null) {
-      return transactionRepository.findAll(pageable).map(this::versResponse);
+  public Page<TransactionTresorerieResponse> listerTransactions(
+      TypeTransaction type,
+      String recherche,
+      LocalDate debut,
+      LocalDate fin,
+      Pageable pageable) {
+    Instant debutInstant = debut == null ? null : debut.atStartOfDay(ZoneOffset.UTC).toInstant();
+    Instant finExclus = fin == null ? null : fin.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+    Pageable tri =
+        pageable.getSort().isUnsorted()
+            ? PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(Sort.Direction.DESC, "dateOperation"))
+            : pageable;
+    var spec = TransactionTresorerieSpecs.pourListeJournal(type, debutInstant, finExclus, recherche);
+    return transactionRepository.findAll(spec, tri).map(this::versResponse);
+  }
+
+  /**
+   * Encaissements / décaissements par mois civil (date d’opération), hors transferts et hors transactions annulées.
+   */
+  @Transactional(readOnly = true)
+  public List<FluxMoisRapportResponse> rapportMensuel(YearMonth debutYm, YearMonth finYm) {
+    if (debutYm.isAfter(finYm)) {
+      throw new ValidationException("La période debut doit précéder ou égaler fin");
     }
-    return transactionRepository.findByType(type, pageable).map(this::versResponse);
+    LocalDate debut = debutYm.atDay(1);
+    LocalDate fin = finYm.atEndOfMonth();
+    Map<String, FluxMoisRapportResponse> map = new HashMap<>();
+    for (Object[] row : transactionRepository.fluxParMois(debut, fin)) {
+      String mois = String.valueOf(row[0]);
+      BigDecimal enc = new BigDecimal(String.valueOf(row[1]));
+      BigDecimal dec = new BigDecimal(String.valueOf(row[2]));
+      map.put(mois, new FluxMoisRapportResponse(mois, enc, dec));
+    }
+    List<FluxMoisRapportResponse> out = new ArrayList<>();
+    for (YearMonth ym = debutYm; !ym.isAfter(finYm); ym = ym.plusMonths(1)) {
+      String key = ym.toString();
+      out.add(map.getOrDefault(key, new FluxMoisRapportResponse(key, ZERO, ZERO)));
+    }
+    return out;
   }
 
   private TransactionTresorerieResponse versResponse(TransactionTresorerie tx) {
+    String libelle = libelleAffiche(tx);
+    String ref = referenceAffiche(tx);
+    String compteNom;
+    String nomSource;
+    String nomDestination;
+    if (tx.getType() == TypeTransaction.TRANSFERT) {
+      compteNom = null;
+      nomSource = tx.getCompteSource() == null ? null : tx.getCompteSource().getNom();
+      nomDestination = tx.getCompteDestination() == null ? null : tx.getCompteDestination().getNom();
+    } else if (tx.getType() == TypeTransaction.ENTREE) {
+      compteNom = tx.getCompteDestination() == null ? null : tx.getCompteDestination().getNom();
+      nomSource = null;
+      nomDestination = null;
+    } else {
+      compteNom = tx.getCompteSource() == null ? null : tx.getCompteSource().getNom();
+      nomSource = null;
+      nomDestination = null;
+    }
     return new TransactionTresorerieResponse(
         tx.getId(),
-        tx.getType(),
-        tx.getMontant(),
         tx.getDateOperation(),
-        tx.getCompteSource() == null ? null : tx.getCompteSource().getId(),
-        tx.getCompteDestination() == null ? null : tx.getCompteDestination().getId(),
-        tx.getTypeReference(),
-        tx.getIdReference(),
-        tx.getDescription());
+        tx.getType(),
+        libelle,
+        tx.getMontant(),
+        devise,
+        compteNom,
+        nomSource,
+        nomDestination,
+        ref,
+        tx.getStatut());
+  }
+
+  private static String libelleAffiche(TransactionTresorerie tx) {
+    String d = tx.getDescription();
+    if (d != null && !d.isBlank()) {
+      return d.trim();
+    }
+    return switch (tx.getTypeReference()) {
+      case FACTURE -> "Encaissement client";
+      case DEPENSE -> "Dépense";
+      case PAIE -> "Paiement salaire";
+      default -> "Opération trésorerie";
+    };
+  }
+
+  private static String referenceAffiche(TransactionTresorerie tx) {
+    if (tx.getIdReference() != null) {
+      return tx.getTypeReference().name() + ":" + tx.getIdReference();
+    }
+    if (tx.getTypeReference() != TypeReference.MANUEL) {
+      return tx.getTypeReference().name();
+    }
+    return null;
   }
 
   private String normaliserDescription(String description) {
@@ -219,4 +313,3 @@ public class TransactionTresorerieService {
     return d.isEmpty() ? null : d;
   }
 }
-
