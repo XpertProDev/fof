@@ -8,6 +8,7 @@ import com.fof.securite.dto.CreerUtilisateurRequest;
 import com.fof.securite.dto.ModifierUtilisateurRequest;
 import com.fof.securite.dto.PermissionResponse;
 import com.fof.securite.dto.RoleResponse;
+import com.fof.securite.dto.UtilisateurDetailResponse;
 import com.fof.securite.dto.UtilisateurResponse;
 import com.fof.securite.service.AdminSecuriteService;
 import jakarta.validation.Valid;
@@ -74,6 +75,11 @@ public class AdminSecuriteController {
   @GetMapping("/utilisateurs")
   public Page<UtilisateurResponse> listerUtilisateurs(String recherche, @PageableDefault(size = 50) Pageable pageable) {
     return adminSecuriteService.listerUtilisateurs(recherche, pageable);
+  }
+
+  @GetMapping("/utilisateurs/{id}")
+  public UtilisateurDetailResponse detailUtilisateur(@PathVariable Long id) {
+    return adminSecuriteService.detailUtilisateur(id);
   }
 
   @PutMapping("/utilisateurs/{id}/roles")

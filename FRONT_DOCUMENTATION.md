@@ -387,7 +387,7 @@ Payer:
 
 ## 6) Employés
 - **POST** `/api/employes` (**PERM_EMPLOYEE_MANAGE**)
-- **PUT** `/api/employes/{id}` (**PERM_EMPLOYEE_MANAGE**)
+- **PUT** `/api/employes/{id}` (**PERM_EMPLOYEE_MANAGE**) — `multipart/form-data` (données + photos optionnelles)
 - **GET** `/api/employes/{id}` (**PERM_EMPLOYEE_MANAGE** ou **PERM_PAYROLL_MANAGE**)
 - **GET** `/api/employes?recherche=` (**PERM_EMPLOYEE_MANAGE** ou **PERM_PAYROLL_MANAGE**)
 - **DELETE** `/api/employes/{id}` (**PERM_EMPLOYEE_MANAGE**)
@@ -411,9 +411,11 @@ Body:
 - `ACTIF`
 - `INACTIF`
 
-### Photo employé
-- **PUT** `/api/employes/{id}/photo` (**PERM_EMPLOYEE_MANAGE**)  
-`multipart/form-data` avec champ fichier `photo`.
+### Modifier un employé (données + photo + photo pièce)
+`multipart/form-data` avec :
+- `donnees` : JSON (`ModifierEmployeRequest`) — mêmes champs que création
+- `photo` : fichier image (optionnel)
+- `photoPiece` : fichier image (optionnel)
 
 ---
 
@@ -499,6 +501,7 @@ Tous les endpoints ci-dessous nécessitent **`PERM_SETTINGS_MANAGE`**.
 - **POST** `/api/admin/securite/utilisateurs`
 - **PUT** `/api/admin/securite/utilisateurs/{id}`
 - **GET** `/api/admin/securite/utilisateurs?recherche=`
+- **GET** `/api/admin/securite/utilisateurs/{id}` — détail (rôles + permissions effectives)
 - **PUT** `/api/admin/securite/utilisateurs/{id}/roles`
 - **PUT** `/api/admin/securite/utilisateurs/{id}/mot-de-passe`
 - **DELETE** `/api/admin/securite/utilisateurs/{id}`

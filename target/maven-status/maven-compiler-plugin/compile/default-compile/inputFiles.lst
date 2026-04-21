@@ -29,7 +29,6 @@
 /Users/mac/Desktop/fof/src/main/java/com/fof/depense/repository/DepenseRepository.java
 /Users/mac/Desktop/fof/src/main/java/com/fof/depense/service/DepenseService.java
 /Users/mac/Desktop/fof/src/main/java/com/fof/employe/controller/EmployeController.java
-/Users/mac/Desktop/fof/src/main/java/com/fof/employe/controller/EmployePhotoController.java
 /Users/mac/Desktop/fof/src/main/java/com/fof/employe/dto/CreerEmployeRequest.java
 /Users/mac/Desktop/fof/src/main/java/com/fof/employe/dto/EmployeResponse.java
 /Users/mac/Desktop/fof/src/main/java/com/fof/employe/dto/ModifierEmployeRequest.java
@@ -128,6 +127,7 @@
 /Users/mac/Desktop/fof/src/main/java/com/fof/securite/dto/RefreshRequest.java
 /Users/mac/Desktop/fof/src/main/java/com/fof/securite/dto/RoleResponse.java
 /Users/mac/Desktop/fof/src/main/java/com/fof/securite/dto/TokenResponse.java
+/Users/mac/Desktop/fof/src/main/java/com/fof/securite/dto/UtilisateurDetailResponse.java
 /Users/mac/Desktop/fof/src/main/java/com/fof/securite/dto/UtilisateurResponse.java
 /Users/mac/Desktop/fof/src/main/java/com/fof/securite/entity/Permission.java
 /Users/mac/Desktop/fof/src/main/java/com/fof/securite/entity/RefreshToken.java

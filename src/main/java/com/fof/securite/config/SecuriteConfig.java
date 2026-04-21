@@ -47,7 +47,7 @@ public class SecuriteConfig {
         .authorizeHttpRequests(auth -> auth
             .requestMatchers("/api/auth/**").permitAll()
             // Fichiers publics servis depuis resources/static (URLs renvoyées en photoUrl, etc.)
-            .requestMatchers(HttpMethod.GET, "/clientUpload/**", "/userUpload/**", "/employeUpload/**", "/entrepriseUpload/**").permitAll()
+            .requestMatchers(HttpMethod.GET, "/clientUpload/**", "/userUpload/**", "/employeUpload/**", "/entrepriseUpload/**", "/employePieceUpload/**").permitAll()
             .anyRequest().authenticated()
         )
         .exceptionHandling(eh -> eh

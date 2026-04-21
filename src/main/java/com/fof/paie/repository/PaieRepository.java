@@ -14,6 +14,8 @@ public interface PaieRepository extends JpaRepository<Paie, Long> {
 
   boolean existsByEmployeIdAndMois(Long employeId, String mois);
 
+  boolean existsByEmployeId(Long employeId);
+
   @Query("""
       select p
       from Paie p

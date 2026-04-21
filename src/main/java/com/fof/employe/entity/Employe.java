@@ -47,6 +47,9 @@ public class Employe {
   @Column(length = 255)
   private String photoUrl;
 
+  @Column(length = 255)
+  private String photoPieceUrl;
+
   @Column(nullable = false)
   private LocalDate dateEmbauche = LocalDate.now();
 

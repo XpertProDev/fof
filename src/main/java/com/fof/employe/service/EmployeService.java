@@ -6,7 +6,9 @@ import com.fof.employe.dto.ModifierEmployeRequest;
 import com.fof.employe.entity.Employe;
 import com.fof.employe.entity.StatutEmploye;
 import com.fof.employe.repository.EmployeRepository;
+import com.fof.fichier.service.StockageFichierService;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.ValidationException;
 import java.time.LocalDate;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
@@ -14,12 +16,16 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import com.fof.paie.repository.PaieRepository;
 
 @RequiredArgsConstructor
 @Service
 public class EmployeService {
 
   private final EmployeRepository employeRepository;
+  private final StockageFichierService stockageFichierService;
+  private final PaieRepository paieRepository;
 
   @Transactional
   public EmployeResponse creer(CreerEmployeRequest request) {
@@ -32,11 +38,25 @@ public class EmployeService {
   }
 
   @Transactional
-  public EmployeResponse modifier(Long id, ModifierEmployeRequest request) {
+  public EmployeResponse modifier(Long id, ModifierEmployeRequest request, MultipartFile photo, MultipartFile photoPiece) {
     Objects.requireNonNull(request, "request");
     Employe e = charger(id);
     appliquer(e, request.nom(), request.prenom(), request.telephone(), request.fonction(), request.salaireBase(),
         request.typeContrat(), request.dateEmbauche(), request.statut());
+
+    if (photo != null && !photo.isEmpty()) {
+      String ancienne = e.getPhotoUrl();
+      String url = stockageFichierService.enregistrerImage(photo, "employeUpload");
+      e.setPhotoUrl(url);
+      stockageFichierService.supprimerSiPossible(ancienne);
+    }
+    if (photoPiece != null && !photoPiece.isEmpty()) {
+      String ancienne = e.getPhotoPieceUrl();
+      String url = stockageFichierService.enregistrerImage(photoPiece, "employePieceUpload");
+      e.setPhotoPieceUrl(url);
+      stockageFichierService.supprimerSiPossible(ancienne);
+    }
+
     return versResponse(e);
   }
 
@@ -53,10 +73,15 @@ public class EmployeService {
 
   @Transactional
   public void supprimer(Long id) {
-    if (!employeRepository.existsById(id)) {
-      throw new EntityNotFoundException("Employé introuvable: " + id);
+    Employe e = charger(id);
+    if (paieRepository.existsByEmployeId(id)) {
+      throw new ValidationException("Impossible de supprimer cet employé : des paies liées existent");
     }
-    employeRepository.deleteById(id);
+    String anciennePhoto = e.getPhotoUrl();
+    String anciennePhotoPiece = e.getPhotoPieceUrl();
+    employeRepository.delete(e);
+    stockageFichierService.supprimerSiPossible(anciennePhoto);
+    stockageFichierService.supprimerSiPossible(anciennePhotoPiece);
   }
 
   @Transactional(readOnly = true)
@@ -105,6 +130,7 @@ public class EmployeService {
         e.getSalaireBase(),
         e.getTypeContrat(),
         e.getPhotoUrl(),
+        e.getPhotoPieceUrl(),
         e.getDateEmbauche(),
         e.getStatut(),
         e.getDateCreation()

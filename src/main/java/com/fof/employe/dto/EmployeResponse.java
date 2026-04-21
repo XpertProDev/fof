@@ -14,6 +14,7 @@ public record EmployeResponse(
     BigDecimal salaireBase,
     String typeContrat,
     String photoUrl,
+    String photoPieceUrl,
     LocalDate dateEmbauche,
     StatutEmploye statut,
     Instant dateCreation

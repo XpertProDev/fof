@@ -7,7 +7,9 @@ import com.fof.client.entity.Client;
 import com.fof.client.entity.StatutClient;
 import com.fof.client.repository.ClientRepository;
 import com.fof.fichier.service.StockageFichierService;
+import com.fof.facture.repository.FactureRepository;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.ValidationException;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -22,6 +24,7 @@ public class ClientService {
 
   private final ClientRepository clientRepository;
   private final StockageFichierService stockageFichierService;
+  private final FactureRepository factureRepository;
 
   @Transactional
   public ClientResponse creer(CreerClientRequest request) {
@@ -50,10 +53,14 @@ public class ClientService {
 
   @Transactional
   public void supprimer(Long id) {
-    if (!clientRepository.existsById(id)) {
-      throw new EntityNotFoundException("Client introuvable: " + id);
+    Client client = charger(id);
+    long nbFactures = factureRepository.compterFacturesPourClientHorsAnnulees(id);
+    if (nbFactures > 0) {
+      throw new ValidationException("Impossible de supprimer ce client : " + nbFactures + " facture(s) liée(s) existent");
     }
-    clientRepository.deleteById(id);
+    String anciennePhoto = client.getPhotoUrl();
+    clientRepository.delete(client);
+    stockageFichierService.supprimerSiPossible(anciennePhoto);
   }
 
   @Transactional(readOnly = true)

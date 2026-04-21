@@ -8,12 +8,14 @@ import com.fof.securite.dto.CreerUtilisateurRequest;
 import com.fof.securite.dto.ModifierUtilisateurRequest;
 import com.fof.securite.dto.PermissionResponse;
 import com.fof.securite.dto.RoleResponse;
+import com.fof.securite.dto.UtilisateurDetailResponse;
 import com.fof.securite.dto.UtilisateurResponse;
 import com.fof.securite.entity.Permission;
 import com.fof.securite.entity.Role;
 import com.fof.securite.entity.StatutUtilisateur;
 import com.fof.securite.entity.Utilisateur;
 import com.fof.securite.repository.PermissionRepository;
+import com.fof.securite.repository.RefreshTokenRepository;
 import com.fof.securite.repository.RoleRepository;
 import com.fof.securite.repository.UtilisateurRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -36,6 +38,7 @@ public class AdminSecuriteService {
   private final PermissionRepository permissionRepository;
   private final RoleRepository roleRepository;
   private final UtilisateurRepository utilisateurRepository;
+  private final RefreshTokenRepository refreshTokenRepository;
   private final PasswordEncoder passwordEncoder;
 
   @Transactional(readOnly = true)
@@ -125,6 +128,13 @@ public class AdminSecuriteService {
     return utilisateurRepository.rechercher(q, pageable).map(this::versUtilisateurResponse);
   }
 
+  @Transactional(readOnly = true)
+  public UtilisateurDetailResponse detailUtilisateur(Long id) {
+    Utilisateur u = utilisateurRepository.findById(id)
+        .orElseThrow(() -> new EntityNotFoundException("Utilisateur introuvable: " + id));
+    return versUtilisateurDetailResponse(u);
+  }
+
   @Transactional
   public UtilisateurResponse assignerRolesUtilisateur(Long utilisateurId, AssignerRolesUtilisateurRequest request) {
     Objects.requireNonNull(request, "request");
@@ -153,6 +163,8 @@ public class AdminSecuriteService {
     if (!utilisateurRepository.existsById(utilisateurId)) {
       throw new EntityNotFoundException("Utilisateur introuvable: " + utilisateurId);
     }
+    // FK refresh_token(utilisateur_id) -> utilisateur(id) : supprimer avant l'utilisateur.
+    refreshTokenRepository.supprimerTousPourUtilisateur(utilisateurId);
     utilisateurRepository.deleteById(utilisateurId);
   }
 
@@ -176,6 +188,26 @@ public class AdminSecuriteService {
         u.getStatut(),
         u.getDateCreation(),
         roles
+    );
+  }
+
+  private UtilisateurDetailResponse versUtilisateurDetailResponse(Utilisateur u) {
+    Set<String> roles = u.getRoles().stream().map(Role::getNom).collect(Collectors.toSet());
+    Set<String> permissions = u.getRoles().stream()
+        .flatMap(r -> r.getPermissions().stream())
+        .map(Permission::getCode)
+        .collect(Collectors.toSet());
+    return new UtilisateurDetailResponse(
+        u.getId(),
+        u.getNom(),
+        u.getPrenom(),
+        u.getTelephone(),
+        u.getEmail(),
+        u.getPhotoUrl(),
+        u.getStatut(),
+        u.getDateCreation(),
+        roles,
+        permissions
     );
   }
 
