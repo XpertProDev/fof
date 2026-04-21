@@ -49,7 +49,8 @@ public class InitialisationSecuriteService {
       "EXPENSE_MANAGE",
       "ACCOUNTING_VIEW",
       "TREASURY_MANAGE",
-      "SETTINGS_MANAGE"
+      "SETTINGS_MANAGE",
+      "RESERVATION_MANAGE"
   );
 
   @Transactional

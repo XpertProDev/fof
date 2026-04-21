@@ -69,6 +69,7 @@ Principales permissions:
 - `PERM_PAYROLL_MANAGE`
 - `PERM_EXPENSE_MANAGE`
 - `PERM_ACCOUNTING_VIEW`, `PERM_TREASURY_MANAGE` (comptes + journal + opérations trésorerie)
+- `PERM_RESERVATION_MANAGE` (enregistrement des réservations / billets)
 - `PERM_SETTINGS_MANAGE`
 
 ## Entreprise (entête/pied de page factures)
@@ -501,4 +502,109 @@ Tous les endpoints ci-dessous nécessitent **`PERM_SETTINGS_MANAGE`**.
 - **PUT** `/api/admin/securite/utilisateurs/{id}/roles`
 - **PUT** `/api/admin/securite/utilisateurs/{id}/mot-de-passe`
 - **DELETE** `/api/admin/securite/utilisateurs/{id}`
+
+---
+
+## 12) Réservations (billets)
+Toutes les routes exigent **`PERM_RESERVATION_MANAGE`** (JWT à jour après ajout de la permission : se reconnecter ou rafraîchir le token).
+
+- **POST** `/api/reservations` — **201 Created** — corps JSON ci-dessous.  
+  `referenceReservation` et `billet.numeroBillet` sont **saisis** (non générés par l’API). Unicité globale : pas deux réservations avec la même référence ni deux billets avec le même numéro.
+- **GET** `/api/reservations/{id}` — détail (404 si inconnu).
+- **GET** `/api/reservations` — liste **paginée** (format Spring `Page` : `content`, `totalElements`, `totalPages`, `number`, `size`, …). Query : `page` (0-based), `size` (défaut **20**), `sort` (ex. `sort=dateReservation,desc&sort=id,desc`). Sans `sort` explicite : tri par défaut **`dateReservation` desc**, puis **`id` desc**.
+- **DELETE** `/api/reservations/{id}` — **204 No Content** (404 si inconnu).
+  
+Recherche (optionnel) : `recherche=` filtre sur `referenceReservation`, `agence`, `passager.prenom`, `passager.nom`, `billet.numeroBillet`, et `vols.numeroVol` / `vols.compagnie`.
+
+Dates : `dateReservation` au format ISO date (`YYYY-MM-DD`) ; `depart` / `arrivee` : `dateHeure` en ISO-8601 local (`2026-04-17T15:15:00`).
+
+### Exemple **POST** `/api/reservations` (requête)
+
+```json
+{
+  "referenceReservation": "XZU7RK",
+  "dateReservation": "2026-04-16",
+  "agence": "ULTRA VOYAGES SARL",
+  "passager": {
+    "prenom": "YOUMASSOUDOU",
+    "nom": "YATTASSAYE"
+  },
+  "billet": {
+    "numeroBillet": "1999506358516",
+    "type": "ETKT",
+    "compagnieEmission": "TUNISAIR"
+  },
+  "vols": [
+    {
+      "numeroVol": "TU399",
+      "compagnie": "TUNISAIR",
+      "classeVoyage": "ECONOMY",
+      "avion": "AIRBUS A320NEO",
+      "franchiseBagage": "2PC",
+      "depart": {
+        "ville": "TUNIS",
+        "aeroport": "CARTHAGE",
+        "terminal": "M",
+        "dateHeure": "2026-04-17T15:15:00"
+      },
+      "arrivee": {
+        "ville": "BAMAKO",
+        "aeroport": "SENOU INTL",
+        "terminal": "N",
+        "dateHeure": "2026-04-17T22:05:00"
+      },
+      "escales": [
+        { "villeDepart": "TUNIS", "villeArrivee": "ABIDJAN" },
+        { "villeDepart": "ABIDJAN", "villeArrivee": "BAMAKO" }
+      ]
+    }
+  ]
+}
+```
+
+### Exemple de **réponse** (201, même structure enrichie avec `id`)
+
+```json
+{
+  "id": 1,
+  "referenceReservation": "XZU7RK",
+  "dateReservation": "2026-04-16",
+  "agence": "ULTRA VOYAGES SARL",
+  "passager": {
+    "prenom": "YOUMASSOUDOU",
+    "nom": "YATTASSAYE"
+  },
+  "billet": {
+    "numeroBillet": "1999506358516",
+    "type": "ETKT",
+    "compagnieEmission": "TUNISAIR"
+  },
+  "vols": [
+    {
+      "id": 10,
+      "numeroVol": "TU399",
+      "compagnie": "TUNISAIR",
+      "classeVoyage": "ECONOMY",
+      "avion": "AIRBUS A320NEO",
+      "franchiseBagage": "2PC",
+      "depart": {
+        "ville": "TUNIS",
+        "aeroport": "CARTHAGE",
+        "terminal": "M",
+        "dateHeure": "2026-04-17T15:15:00"
+      },
+      "arrivee": {
+        "ville": "BAMAKO",
+        "aeroport": "SENOU INTL",
+        "terminal": "N",
+        "dateHeure": "2026-04-17T22:05:00"
+      },
+      "escales": [
+        { "id": 100, "villeDepart": "TUNIS", "villeArrivee": "ABIDJAN" },
+        { "id": 101, "villeDepart": "ABIDJAN", "villeArrivee": "BAMAKO" }
+      ]
+    }
+  ]
+}
+```
 
