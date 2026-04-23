@@ -54,24 +54,24 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
   );
 
   @Query("""
-      select n
-      from Notification n
-      where (:type is null or n.type = :type)
-        and (:statut is null or n.statut = :statut)
-        and (:debut is null or n.dateCreation >= :debut)
-        and (:fin is null or n.dateCreation <= :fin)
-        and (
-          :recherche is null
-          or lower(n.message) like lower(concat('%', :recherche, '%'))
-        )
-      order by n.dateCreation desc
-      """)
-  Page<Notification> rechercher(
-      @Param("recherche") String recherche,
-      @Param("type") TypeNotification type,
-      @Param("statut") StatutNotification statut,
-      @Param("debut") Instant debut,
-      @Param("fin") Instant fin,
-      Pageable pageable
-  );
+    select n
+    from Notification n
+    where (:type is null or n.type = :type)
+      and (:statut is null or n.statut = :statut)
+      and (:debut is null or n.dateCreation >= CAST(:debut AS timestamp))
+      and (:fin is null or n.dateCreation <= CAST(:fin AS timestamp))
+      and (
+        :recherche is null
+        or lower(n.message) like lower(concat('%', :recherche, '%'))
+      )
+    order by n.dateCreation desc
+    """)
+Page<Notification> rechercher(
+    @Param("recherche") String recherche,
+    @Param("type") TypeNotification type,
+    @Param("statut") StatutNotification statut,
+    @Param("debut") String debut,  // Changé de Instant à String
+    @Param("fin") String fin,      // Changé de Instant à String
+    Pageable pageable
+);
 }

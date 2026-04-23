@@ -77,8 +77,13 @@ public class NotificationService {
       Instant fin,
       Pageable pageable
   ) {
-    String q = (recherche == null || recherche.isBlank()) ? null : recherche.trim();
-    return notificationRepository.rechercher(q, type, statut, debut, fin, pageable).map(this::versResponse);
+      String q = (recherche == null || recherche.isBlank()) ? null : recherche.trim();
+      
+      String debutStr = debut != null ? debut.toString() : null;
+      String finStr = fin != null ? fin.toString() : null;
+      
+      return notificationRepository.rechercher(q, type, statut, debutStr, finStr, pageable)
+          .map(this::versResponse);
   }
 
   @Transactional
