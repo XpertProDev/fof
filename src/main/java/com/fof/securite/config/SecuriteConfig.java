@@ -75,7 +75,7 @@ public class SecuriteConfig {
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration config = new CorsConfiguration();
     config.setAllowCredentials(true);
-    config.addAllowedOriginPattern("http://localhost:4200");
+    config.addAllowedOriginPattern("https://yousre.netlify.app");
     config.addAllowedHeader(CorsConfiguration.ALL);
     config.addAllowedMethod(CorsConfiguration.ALL);
 
