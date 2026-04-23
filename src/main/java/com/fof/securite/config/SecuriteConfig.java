@@ -70,18 +70,23 @@ public class SecuriteConfig {
   public UserDetailsService userDetailsService(com.fof.securite.service.UtilisateurDetailsService utilisateurDetailsService) {
     return utilisateurDetailsService;
   }
-
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
-    CorsConfiguration config = new CorsConfiguration();
-    config.setAllowCredentials(true);
-    config.addAllowedOriginPattern("https://yousre.netlify.app");
-    config.addAllowedHeader(CorsConfiguration.ALL);
-    config.addAllowedMethod(CorsConfiguration.ALL);
-
-    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-    source.registerCorsConfiguration("/**", config);
-    return source;
+      CorsConfiguration config = new CorsConfiguration();
+      config.setAllowCredentials(true);
+      config.addAllowedOriginPattern("http://localhost:4200");
+      config.addAllowedOriginPattern("https://yousre.netlify.app");
+      // Ajoute celui-ci pour éviter les problèmes
+      config.addAllowedOriginPattern("https://*.netlify.app");
+      config.addAllowedHeader("*");
+      config.addAllowedMethod("*");
+      
+      // Important pour les requêtes préflight OPTIONS
+      config.setMaxAge(3600L);
+      
+      UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+      source.registerCorsConfiguration("/**", config);
+      return source;
   }
 
   static class FiltreJwt extends OncePerRequestFilter {
