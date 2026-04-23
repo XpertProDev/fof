@@ -58,16 +58,16 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
       from Notification n
       where (:type is null or n.type = :type)
         and (:statut is null or n.statut = :statut)
-        and (:debut is null or n.dateCreation >= CAST(:debut AS timestamp))
-        and (:fin is null or n.dateCreation <= CAST(:fin AS timestamp))
+        and (:debut is null or n.dateCreation >= :debut)
+        and (:fin is null or n.dateCreation <= :fin)
         and (
-          :q is null
-          or lower(n.message) like lower(concat('%', :q, '%'))
+          :recherche is null
+          or lower(n.message) like lower(concat('%', :recherche, '%'))
         )
       order by n.dateCreation desc
       """)
   Page<Notification> rechercher(
-      @Param("q") String q,
+      @Param("recherche") String recherche,
       @Param("type") TypeNotification type,
       @Param("statut") StatutNotification statut,
       @Param("debut") Instant debut,
